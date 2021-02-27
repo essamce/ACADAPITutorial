@@ -22,8 +22,8 @@ namespace C3DAPITutorial
      
     public class EntryPoint
     {
-        [CommandMethod("HelloC3D")]
-        public void SendMessageToAcad()
+        [CommandMethod("GetAlignments")]
+        public void GetAlignmetns()
         {
             // get currunt document 
             var aDocument = aApp.Application.DocumentManager.MdiActiveDocument;
@@ -31,8 +31,53 @@ namespace C3DAPITutorial
             var editor = aDocument.Editor;
             var cDocument = cApp.CivilApplication.ActiveDocument;
 
-            // send message to ACAD
-            editor.WriteMessage("Hello from c3d api");
+            // get alignmets from civil document
+            var allAlignmentsIds = cDocument.GetAlignmentIds();
+
+            // start transaction
+            using (var ts = database.TransactionManager.StartTransaction())
+            {
+                foreach (aDB.ObjectId id in allAlignmentsIds)
+                {
+                    var alignmet = id.GetObject(aDB.OpenMode.ForRead) as cDB.Alignment;
+                    editor.WriteMessage($"\nalignmet.Name: <{alignmet.Name,-15}>, alignmet.Length: <{alignmet.Length,-10}>");
+                }
+
+                ts.Commit();
+            }
+
+        }
+
+
+        [CommandMethod("GetAlignmetnBySelection")]
+        public void GetAlignmetnBySelection()
+        {
+            // get currunt document 
+            var aDocument = aApp.Application.DocumentManager.MdiActiveDocument;
+            var database = aDocument.Database;
+            var editor = aDocument.Editor;
+            var cDocument = cApp.CivilApplication.ActiveDocument;
+
+            // get alignmet by selection
+            var opt = new PromptEntityOptions("\nSelect an alignment");
+            opt.SetRejectMessage("\nObject must be an alignmet.");
+            opt.AddAllowedClass(typeof(cDB.Alignment), false);
+            var psr = editor.GetEntity(opt);
+
+            if (psr.Status != PromptStatus.OK)
+            {
+                editor.WriteMessage("\nNo Selection found");
+                return;
+            }
+
+            // start transaction
+            using (var ts = database.TransactionManager.StartTransaction())
+            {
+                var alignmet = psr.ObjectId.GetObject(aDB.OpenMode.ForRead) as cDB.Alignment;
+                editor.WriteMessage($"\nalignmet.Name: <{alignmet.Name,-15}>, alignmet.Length: <{alignmet.Length,-10}>");
+
+                ts.Commit();
+            }
 
         }
 
