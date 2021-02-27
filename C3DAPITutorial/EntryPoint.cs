@@ -16,59 +16,17 @@ namespace C3DAPITutorial
 {
     public class EntryPoint
     {
-        [CommandMethod("CreateSampleLineCmd")]
-        public void CreateSampleLineCmd()
+        [CommandMethod("CreateSamplesCmd")]
+        public void CreateSamplesCmd()
         {
             // get currunt document 
             var acDoc = aApp.Application.DocumentManager.MdiActiveDocument;
             var database = acDoc.Database;
             var editor = acDoc.Editor;
             var civilDoc = cApp.CivilApplication.ActiveDocument;
+            double accuracy = 0.001;
 
-            // Ask the user to select an alignment
-            var promptAlignmentOpt = new PromptEntityOptions("\nSelect an Alignment");
-            promptAlignmentOpt.SetRejectMessage("\nObject must be a alignmetnt.");
-            promptAlignmentOpt.AddAllowedClass(typeof(cDB.Alignment), false);
-            var promptAlignment = editor.GetEntity(promptAlignmentOpt);
-            if (promptAlignment.Status != PromptStatus.OK)
-            {
-                editor.WriteMessage("\nNo Selection found");
-                return;
-            }
-
-            // start transaction
-            using (var ts = database.TransactionManager.StartTransaction())
-            {
-                // open selected alignment for write
-                var alignment = promptAlignment.ObjectId.GetObject(aDB.OpenMode.ForWrite) as cDB.Alignment;
-
-                // create sample line group
-                var slGroupId = cDB.SampleLineGroup.Create("SL-Group-1", alignment.Id);
-                var slGroup = alignment.GetSampleLineGroupIds().Add(slGroupId);
-
-                // calculate sample line
-                var p1 = new aGeom.Point2d();
-                var p2 = new aGeom.Point2d(20, 0);
-                var slPoints = new aGeom.Point2dCollection() { p1, p2 };
-
-                // create sample lines
-                var sampleLineId = cDB.SampleLine.Create("STA-", slGroupId, slPoints);
-
-                ts.Commit();
-            }
-
-        }
-
-
-        [CommandMethod("CreateSampleByStationCmd")]
-        public void CreateSampleByStationCmd()
-        {
-            // get currunt document 
-            var acDoc = aApp.Application.DocumentManager.MdiActiveDocument;
-            var database = acDoc.Database;
-            var editor = acDoc.Editor;
-            var civilDoc = cApp.CivilApplication.ActiveDocument;
-
+            //----------------------------------- Step 10:  get user inputs ----------------------------------------------------- 
             /// Ask the user to select an alignment
             var promptAlignmentOpt = new PromptEntityOptions("\nSelect an Alignment");
             promptAlignmentOpt.SetRejectMessage("\nObject must be a polyline.");
@@ -80,36 +38,75 @@ namespace C3DAPITutorial
                 return;
             }
 
+            // Ask the user to enter numbers
             double leftWidth = 25;
             double righttWidth = 35;
-            double station = 100;
+            double interval = 20;
+            // left width
+            var leftWidthPrompt = editor.GetDistance("\n Enter Left Width:");
+            if (leftWidthPrompt.Status != PromptStatus.OK)
+            {
+                editor.WriteMessage("\nNo Distance found");
+                return;
+            }
+            // left width
+            var righttWidthPrompt = editor.GetDistance("\n Enter Right Width:");
+            if (righttWidthPrompt.Status != PromptStatus.OK)
+            {
+                editor.WriteMessage("\nNo Distance found");
+                return;
+            }
+            // interval
+            var intervalPrompt = editor.GetDistance("\n Enter sample lines interval:");
+            if (intervalPrompt.Status != PromptStatus.OK)
+            {
+                editor.WriteMessage("\nNo Distance found");
+                return;
+            }
+
+            // get numbers
+            leftWidth = leftWidthPrompt.Value;
+            righttWidth = righttWidthPrompt.Value;
+            interval = intervalPrompt.Value;
 
             using (var ts = database.TransactionManager.StartTransaction())
             {
-                // Ask the user to select an alignment
+                //----------------------------------- Step20:  get alignment ---------------------------------------------------
                 var alignment = promptAlignment.ObjectId.GetObject(aDB.OpenMode.ForWrite) as cDB.Alignment;
 
-                // create sample line group
-                var slGroupId = cDB.SampleLineGroup.Create("SL - Group1", alignment.Id);
+                //----------------------------------- Step30: create sample line group -----------------------------------------
+                var slGroupId = cDB.SampleLineGroup.Create("SL - Group2", alignment.Id);
                 var slGroup = alignment.GetSampleLineGroupIds().Add(slGroupId);
 
+                //----------------------------------- Step30: create sample line  ----------------------------------------------
                 // compute sample line
-                double stationX = 0, stationY = 0;
+                double station = alignment.StartingStation, stationX = 0, stationY = 0;
 
-                alignment.PointLocation(station, righttWidth, ref stationX, ref stationY);
-                var rightPoint = new aGeom.Point2d(stationX, stationY);
+                bool endStationAdded = false;
+                while (station < (alignment.EndingStation + accuracy))
+                {
+                    // calculate left point
+                    alignment.PointLocation(station, righttWidth, ref stationX, ref stationY);
+                    var rightPoint = new aGeom.Point2d(stationX, stationY);
+                    // calculate right point
+                    alignment.PointLocation(station, -1 * leftWidth, ref stationX, ref stationY);
+                    var leftPoint = new aGeom.Point2d(stationX, stationY);
 
-                alignment.PointLocation(station, -1 * leftWidth, ref stationX, ref stationY);
-                var leftPoint = new aGeom.Point2d(stationX, stationY);
+                    var slPoints = new aGeom.Point2dCollection() { rightPoint, leftPoint };
+                    // create sample line
+                    var sampleLineId = cDB.SampleLine.Create($"STA-{station:f2}", slGroupId, slPoints);
 
-                var slPoints = new aGeom.Point2dCollection() { rightPoint, leftPoint };
-
-                // create sample line
-                var sampleLineId = cDB.SampleLine.Create("STA-100", slGroupId, slPoints);
+                    // loop increment
+                    station += interval;
+                    if ((station > alignment.EndingStation) && (endStationAdded == false))
+                    {
+                        station = alignment.EndingStation;
+                        endStationAdded = true;
+                    }
+                }
 
                 ts.Commit();
             }
         }
-
     }
 }
