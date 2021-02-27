@@ -15,7 +15,7 @@ using cApp = Autodesk.Civil.ApplicationServices;
 namespace C3DAPITutorial
 {
     public class EntryPoint
-    { 
+    {  
         [CommandMethod("CreateAlignmetByPolylineCmd")]
         public void CreateAlignmetByPolylineCmd()
         {
