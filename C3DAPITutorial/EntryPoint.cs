@@ -15,9 +15,9 @@ using cApp = Autodesk.Civil.ApplicationServices;
 namespace C3DAPITutorial
 {
     public class EntryPoint
-    {  
-        [CommandMethod("CreateAlignmetByPolylineCmd")]
-        public void CreateAlignmetByPolylineCmd()
+    {
+        [CommandMethod("CreateSampleLineCmd")]
+        public void CreateSampleLineCmd()
         {
             // get currunt document 
             var acDoc = aApp.Application.DocumentManager.MdiActiveDocument;
@@ -25,42 +25,43 @@ namespace C3DAPITutorial
             var editor = acDoc.Editor;
             var civilDoc = cApp.CivilApplication.ActiveDocument;
 
-            // Ask the user to select a polyline to convert to an alignment
-            var opt = new PromptEntityOptions("\nSelect a polyline to convert to an Alignment");
-            opt.SetRejectMessage("\nObject must be a polyline.");
-            opt.AddAllowedClass(typeof(aDB.Polyline), false);
-            var psr = editor.GetEntity(opt);
-            if (psr.Status != PromptStatus.OK)
+            // Ask the user to select an alignment
+            var promptAlignmentOpt = new PromptEntityOptions("\nSelect an Alignment");
+            promptAlignmentOpt.SetRejectMessage("\nObject must be a alignmetnt.");
+            promptAlignmentOpt.AddAllowedClass(typeof(cDB.Alignment), false);
+            var promptAlignment = editor.GetEntity(promptAlignmentOpt);
+            if (promptAlignment.Status != PromptStatus.OK)
             {
                 editor.WriteMessage("\nNo Selection found");
                 return;
             }
 
-            // create some polyline options for creating the new alignment
-            var polylineOptions = new cDB.PolylineOptions()
+            // start transaction
+            using (var ts = database.TransactionManager.StartTransaction())
             {
-                AddCurvesBetweenTangents = true,
-                EraseExistingEntities = false,
-                PlineId = psr.ObjectId,
-            };
+                // open selected alignment for write
+                var alignment = promptAlignment.ObjectId.GetObject(aDB.OpenMode.ForWrite) as cDB.Alignment;
 
-            // create a new alignment
-            var testAlignmentID = cDB.Alignment.Create(civilDoc, polylineOptions, "New Alignment 1", "", "0", "Basic", "_No Labels");
+                // create sample line group
+                var slGroupId = cDB.SampleLineGroup.Create("SL-Group-1", alignment.Id);
+                var slGroup = alignment.GetSampleLineGroupIds().Add(slGroupId);
 
+                // calculate sample line
+                var p1 = new aGeom.Point2d();
+                var p2 = new aGeom.Point2d(20, 0);
+                var slPoints = new aGeom.Point2dCollection() { p1, p2 };
 
-            //  the next line is identical to the previouse one, we just write it in declarative way
-            //var testAlignmentID = cDB.Alignment.Create(civilDoc,
-            //        plineOptions: polylineOptions,
-            //        alignmentName: "New Alignment 1",
-            //        siteName: "",
-            //        layerName: "0",
-            //        styleName: "Basic",
-            //        labelSetName: "_No Labels");
+                // create sample lines
+                var sampleLineId = cDB.SampleLine.Create("STA-", slGroupId, slPoints);
+
+                ts.Commit();
+            }
+
         }
 
 
-        [CommandMethod("CreateAlignmetByPolylineCmd2")]
-        public void CreateAlignmetByPolylineCmd2()
+        [CommandMethod("CreateSampleByStationCmd")]
+        public void CreateSampleByStationCmd()
         {
             // get currunt document 
             var acDoc = aApp.Application.DocumentManager.MdiActiveDocument;
@@ -68,54 +69,46 @@ namespace C3DAPITutorial
             var editor = acDoc.Editor;
             var civilDoc = cApp.CivilApplication.ActiveDocument;
 
-            // Ask the user to select a polyline to convert to an alignment
-            var opt = new PromptEntityOptions("\nSelect a polyline to convert to an Alignment");
-            opt.SetRejectMessage("\nObject must be a polyline.");
-            opt.AddAllowedClass(typeof(aDB.Polyline), false);
-            var psr = editor.GetEntity(opt);
-            if (psr.Status != PromptStatus.OK)
+            /// Ask the user to select an alignment
+            var promptAlignmentOpt = new PromptEntityOptions("\nSelect an Alignment");
+            promptAlignmentOpt.SetRejectMessage("\nObject must be a polyline.");
+            promptAlignmentOpt.AddAllowedClass(typeof(cDB.Alignment), false);
+            var promptAlignment = editor.GetEntity(promptAlignmentOpt);
+            if (promptAlignment.Status != PromptStatus.OK)
             {
                 editor.WriteMessage("\nNo Selection found");
                 return;
             }
 
-            // create some polyline options for creating the new alignment
-            var polylineOptions = new cDB.PolylineOptions()
-            {
-                AddCurvesBetweenTangents = true,
-                EraseExistingEntities = false,
-                PlineId = psr.ObjectId,
-            };
+            double leftWidth = 25;
+            double righttWidth = 35;
+            double station = 100;
 
-            // get layer "0" id
-            var layerId = database.LayerZero;
+            using (var ts = database.TransactionManager.StartTransaction())
+            {
+                // Ask the user to select an alignment
+                var alignment = promptAlignment.ObjectId.GetObject(aDB.OpenMode.ForWrite) as cDB.Alignment;
 
-            // get an AlignmentStyle id and check if the drawings has no AlignmentStyles.
-            aDB.ObjectId alignmentStyleId;
-            if (civilDoc.Styles.AlignmentStyles.Count > 0)
-            {
-                alignmentStyleId = civilDoc.Styles.AlignmentStyles[0];
-            }
-            else
-            {
-                editor.WriteMessage("\n No Alignments styles found");
-                return;
-            }
+                // create sample line group
+                var slGroupId = cDB.SampleLineGroup.Create("SL - Group1", alignment.Id);
+                var slGroup = alignment.GetSampleLineGroupIds().Add(slGroupId);
 
-            // get an AlignmentLabelSetStyle and check if the drawings has no AlignmentLabelSetStyles.
-            aDB.ObjectId alignmentLablesSetId;
-            if (civilDoc.Styles.LabelSetStyles.AlignmentLabelSetStyles.Count > 0)
-            {
-                alignmentLablesSetId = civilDoc.Styles.LabelSetStyles.AlignmentLabelSetStyles[0];
-            }
-            else
-            {
-                editor.WriteMessage("\n No Alignments label set found");
-                return;
-            }
+                // compute sample line
+                double stationX = 0, stationY = 0;
 
-            // create a new alignment
-            var testAlignmentID = cDB.Alignment.Create(civilDoc, polylineOptions, "New Alignment 11", aDB.ObjectId.Null, layerId, alignmentStyleId, alignmentLablesSetId);
+                alignment.PointLocation(station, righttWidth, ref stationX, ref stationY);
+                var rightPoint = new aGeom.Point2d(stationX, stationY);
+
+                alignment.PointLocation(station, -1 * leftWidth, ref stationX, ref stationY);
+                var leftPoint = new aGeom.Point2d(stationX, stationY);
+
+                var slPoints = new aGeom.Point2dCollection() { rightPoint, leftPoint };
+
+                // create sample line
+                var sampleLineId = cDB.SampleLine.Create("STA-100", slGroupId, slPoints);
+
+                ts.Commit();
+            }
         }
 
     }
