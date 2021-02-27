@@ -18,46 +18,84 @@ namespace C3DAPITutorial
 {
     public class EntryPoint
     {
-        [CommandMethod("CreateSamplesCmd3")]
-        public void CreateSamplesCmd3()
+        [CommandMethod("PrintPointGroupNumberOfPoint")]
+        public void PrintPointGroupNumberOfPoint()
         {
-            /// Ask the user to select an alignment
-            var isAlignmentFound = ACAD.Interaction.TrySelectObject<cDB.Alignment>(out aDB.ObjectId alignmentId);
-            if (isAlignmentFound == false) return;
 
-            // Ask the user to enter numbers
-            // left width
-            var isLeftWidthFound = ACAD.Interaction.AskForDisatance(out double leftWidth, "Enter Left Width");
-            if (isLeftWidthFound == false) return;
-            // right width
-            var isRighttWidthFound = ACAD.Interaction.AskForDisatance(out double righttWidth, "Enter Right Width");
-            if (isRighttWidthFound == false) return;
-            // interval
-            var isIntervalFound = ACAD.Interaction.AskForDisatance(out double interval, "Enter Interval");
-            if (isIntervalFound == false) return;
-            // Ask the user to enter numbers
-            // left width
-            var isSampleLineGroupNameFound = ACAD.Interaction.AskForString(out string slGroupName, "Enter name");
-            if (isSampleLineGroupNameFound == false) return;
-
-            using (var ts = CurrentDrawing.TransM.StartTransaction())
+            var ptGroupsIDs = ACAD.CurrentDrawing.CivilDoc.PointGroups;
+            if (ptGroupsIDs.Count < 1)
             {
-                //----------------------------------- Step20:  get alignment ---------------------------------------------------
-                var alignment = alignmentId.GetObject(aDB.OpenMode.ForWrite) as cDB.Alignment;
-
-                //----------------------------------- Step30: create sample line group -----------------------------------------
-                var slGroupId = alignment.AddSampleLineGroup(slGroupName, out string slGroupValidName);
-
-                //----------------------------------- Step30: create sample line  ----------------------------------------------
-                var stations = ACAD.General.GetRange(alignment.StartingStation, alignment.EndingStation, interval, consts.Epsilon);
-                alignment.AddSampleLines(slGroupId, slGroupValidName, stations, leftWidth, righttWidth);
-
-                ts.Commit();
+                ACAD.CurrentDrawing.Editor.WriteMessage($"\n-----No Point groups found");
+                return;
             }
 
+            var ptGroupsNames = new List<string>();
+            var ptGroupCounts = new List<uint>();
+
+            using (var ts = ACAD.CurrentDrawing.TransM.StartTransaction())
+            {
+                foreach (var groupId in ptGroupsIDs)
+                {
+                    var ptGroup = groupId.GetObject(aDB.OpenMode.ForRead) as cDB.PointGroup;
+                    ptGroupsNames.Add(ptGroup.Name);
+                    ptGroupCounts.Add(ptGroup.PointsCount);
+                    //var name = C3DEntityExtensions.GetCivilNameOrNull(groupId);
+                }
+
+            }
+
+            var pKeyOpts = new PromptKeywordOptions("");
+            pKeyOpts.Message = "\nEnter Point group name";
+            ptGroupsNames.ForEach(name => pKeyOpts.Keywords.Add(name));
+            pKeyOpts.Keywords.Default = ptGroupsNames.First();
+            pKeyOpts.AllowNone = true;
+            var keyWordRes = ACAD.CurrentDrawing.Editor.GetKeywords(pKeyOpts);
+            if (keyWordRes.Status != PromptStatus.OK)
+            {
+                ACAD.CurrentDrawing.Editor.WriteMessage($"\n-----No names found");
+                return;
+            }
+
+            var selectedName = keyWordRes.StringResult;
+            //var index = ptGroupsNames.IndexOf(selectedName);
+            //var index = ptGroupsNames.FindIndex((name) => name.Equals(selectedName));
+            //var groupPtCount = ptGroupCounts[index];
+
+            //int i = 0;
+            //for (; i < ptGroupsNames.Count; i++)
+            //{
+            //    if (ptGroupsNames[i] == selectedName)
+            //    {
+            //        break;
+            //    }
+            //}
+            //var groupPtCount = ptGroupCounts[i];
+
+            //ACAD.CurrentDrawing.Editor.WriteMessage($"\n-----no of points:  <{groupPtCount}>");
+
+
+
+
+
         }
+
+
 
 
     }
 }
 
+
+
+//var pKeyOpts = new PromptKeywordOptions("");
+//pKeyOpts.Message = "\nEnter an option ";
+//pKeyOpts.Keywords.Add("Line");
+//pKeyOpts.Keywords.Add("Circle");
+//pKeyOpts.Keywords.Add("Arc");
+//pKeyOpts.Keywords.Default = "Arc";
+//pKeyOpts.AllowNone = true;
+
+//PromptResult pKeyRes = acDoc.Editor.GetKeywords(pKeyOpts);
+
+//Application.ShowAlertDialog("Entered keyword: " +
+//                            pKeyRes.StringResult);
