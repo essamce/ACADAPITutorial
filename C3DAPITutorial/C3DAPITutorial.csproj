@@ -79,6 +79,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ACAD\AlignmentExtensions.cs" />
+    <Compile Include="ACAD\C3DEntityExtensions.cs" />
+    <Compile Include="ACAD\CurrentDrawing.cs" />
+    <Compile Include="ACAD\General.cs" />
+    <Compile Include="ACAD\Interaction.cs" />
+    <Compile Include="ACAD\Selection.cs" />
+    <Compile Include="Data\Constants.cs" />
     <Compile Include="EntryPoint.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
