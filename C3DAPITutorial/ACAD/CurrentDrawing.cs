@@ -35,8 +35,8 @@ namespace ACAD
         /// <summary>
         /// <i>Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor</i>
         /// </summary>
-        public static aEditor.Editor Editor;
-        public static aDB.ObjectId ModelSpaceId;
+        public static aEditor.Editor Editor => Doc.Editor;
+        public static aDB.ObjectId ModelSpaceId => Database.CurrentSpaceId;
 
         //public static aDB.BlockTableRecord ModelSpace;
         //static bool modelSpaceOpened = false;
@@ -45,9 +45,7 @@ namespace ACAD
             Doc = aApp.Application.DocumentManager.MdiActiveDocument;
             CivilDoc = cApp.CivilApplication.ActiveDocument;
             Database = Doc.Database;
-            ModelSpaceId = Database.CurrentSpaceId;
             TransM = aDB.HostApplicationServices.WorkingDatabase.TransactionManager;
-            Editor = Doc.Editor;
 
             //if (modelSpaceOpened == false)
             //{
