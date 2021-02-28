@@ -50,24 +50,24 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="accoremgd">
-      <HintPath>..\..\..\..\02 lib\CAD\2018\CAD18\accoremgd.dll</HintPath>
-      <Private>False</Private>
+      <HintPath>..\..\..\02 lib\CAD\2018\CAD18\accoremgd.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="acdbmgd">
-      <HintPath>..\..\..\..\02 lib\CAD\2018\CAD18\acdbmgd.dll</HintPath>
-      <Private>False</Private>
+      <HintPath>..\..\..\02 lib\CAD\2018\CAD18\acdbmgd.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="acmgd">
-      <HintPath>..\..\..\..\02 lib\CAD\2018\CAD18\acmgd.dll</HintPath>
-      <Private>False</Private>
+      <HintPath>..\..\..\02 lib\CAD\2018\CAD18\acmgd.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="AecBaseMgd">
-      <HintPath>..\..\..\..\02 lib\CAD\2018\C3D18\AecBaseMgd.dll</HintPath>
-      <Private>False</Private>
+      <HintPath>..\..\..\02 lib\CAD\2018\C3D18\AecBaseMgd.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="AeccDbMgd">
-      <HintPath>..\..\..\..\02 lib\CAD\2018\C3D18\AeccDbMgd.dll</HintPath>
-      <Private>False</Private>
+      <HintPath>..\..\..\02 lib\CAD\2018\C3D18\AeccDbMgd.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -84,7 +84,6 @@
     <Compile Include="ACAD\CurrentDrawing.cs" />
     <Compile Include="ACAD\General.cs" />
     <Compile Include="ACAD\Interaction.cs" />
-    <Compile Include="ACAD\Selection.cs" />
     <Compile Include="Data\Constants.cs" />
     <Compile Include="EntryPoint.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
